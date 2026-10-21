@@ -1,0 +1,35 @@
+# docker-compose.yml
+# Entorno local de desarrollo: PostgreSQL + MailDev (captura de emails sin SMTP real)
+version: "3.9"
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: joselorza-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${DB_NAME:-joselorza_db}
+      POSTGRES_USER: ${DB_USERNAME:-joselorza_user}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-changeme}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME:-joselorza_user}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # MailDev: servidor SMTP falso con UI web para ver emails enviados en desarrollo
+  # Evita usar credenciales reales de Gmail mientras se desarrolla Auth/Notificaciones
+  maildev:
+    image: maildev/maildev
+    container_name: joselorza-maildev
+    restart: unless-stopped
+    ports:
+      - "1080:1080"  # UI web (http://localhost:1080)
+      - "1025:1025"  # Puerto SMTP
+
+volumes:
+  postgres_data:
