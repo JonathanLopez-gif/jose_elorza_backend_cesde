@@ -1,35 +1,76 @@
-# docker-compose.yml
-# Entorno local de desarrollo: PostgreSQL + MailDev (captura de emails sin SMTP real)
-version: "3.9"
-
 services:
   postgres:
-    image: postgres:16-alpine
-    container_name: joselorza-postgres
-    restart: unless-stopped
+    image: postgres:16
+    container_name: postgres
     environment:
-      POSTGRES_DB: ${DB_NAME:-joselorza_db}
-      POSTGRES_USER: ${DB_USERNAME:-joselorza_user}
-      POSTGRES_PASSWORD: ${DB_PASSWORD:-changeme}
+      POSTGRES_DB: ${DB_NAME}
+      POSTGRES_USER: ${DB_USERNAME}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
     ports:
-      - "5432:5432"
+      - "${DB_PORT:-5432}:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME:-joselorza_user}"]
-      interval: 5s
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME} -d ${DB_NAME}"]
+      interval: 10s
       timeout: 5s
       retries: 5
+    restart: unless-stopped
+    networks:
+      - joselorza_network
 
-  # MailDev: servidor SMTP falso con UI web para ver emails enviados en desarrollo
-  # Evita usar credenciales reales de Gmail mientras se desarrolla Auth/Notificaciones
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: pgadmin
+    environment:
+      PGADMIN_DEFAULT_EMAIL: ${ADMIN_EMAIL}
+      PGADMIN_DEFAULT_PASSWORD: ${ADMIN_PASSWORD}
+    ports:
+      - "5050:80"
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - joselorza_network
+
   maildev:
     image: maildev/maildev
-    container_name: joselorza-maildev
-    restart: unless-stopped
+    container_name: maildev          # Debe coincidir con MAIL_HOST=maildev del .env
     ports:
-      - "1080:1080"  # UI web (http://localhost:1080)
-      - "1025:1025"  # Puerto SMTP
+      - "1080:1080"
+      - "1025:1025"
+    restart: unless-stopped
+    networks:
+      - joselorza_network
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: joselorza_app:latest
+    container_name: app
+    env_file:
+      - .env
+    environment:
+      DB_URL: ${DB_URL_DOCKER}       # Se traduce para que application.yml lo capture
+    ports:
+      - "${SERVER_PORT:-8080}:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      maildev:
+        condition: service_started
+    networks:
+      - joselorza_network
+    restart: unless-stopped
 
 volumes:
   postgres_data:
+  pgadmin_data:
+
+networks:
+  joselorza_network:
+    driver: bridge

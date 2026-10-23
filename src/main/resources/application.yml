@@ -1,25 +1,28 @@
-# src/main/resources/application.yml
+server:
+  port: ${SERVER_PORT:8080}
+
 spring:
   application:
     name: joselorza_app
 
   datasource:
-    url: ${DB_URL:jdbc:postgresql://localhost:5432/joselorza_db}
-    username: ${DB_USERNAME:joselorza_user}
-    password: ${DB_PASSWORD:changeme}
+    url: ${DB_URL:${DB_URL_LOCAL}}    # Fallback inteligente Docker/Local
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
     driver-class-name: org.postgresql.Driver
 
   jpa:
     hibernate:
-      ddl-auto: update   # Hibernate gestiona el esquema automaticamente
+      ddl-auto: ${DDL_AUTO:update}
     show-sql: true
+    open-in-view: false
     properties:
       hibernate:
         format_sql: true
 
   mail:
-    host: ${MAIL_HOST:localhost}
-    port: ${MAIL_PORT:1025}
+    host: ${MAIL_HOST}
+    port: ${MAIL_PORT}
     username: ${MAIL_USERNAME:}
     password: ${MAIL_PASSWORD:}
     properties:
@@ -29,12 +32,28 @@ spring:
           starttls:
             enable: false
 
-# Configuracion personalizada de JWT (se mapeara con @ConfigurationProperties)
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      show-details: always
+
+# Configuracion personalizada de JWT (se mapea con @ConfigurationProperties)
 app:
   jwt:
     secret: ${JWT_SECRET}
-    access-expiration-ms: ${JWT_ACCESS_EXPIRATION_MS:900000}
-    refresh-expiration-ms: ${JWT_REFRESH_EXPIRATION_MS:604800000}
+    access-expiration-minutes: ${JWT_ACCESS_EXPIRATION_MINUTES:15}
+    refresh-expiration-days: ${JWT_REFRESH_EXPIRATION_DAYS:7}
+
+  admin:
+    seed:
+      email: ${ADMIN_EMAIL:admin@joselorza.com}
+      password: ${ADMIN_PASSWORD:admin123}
+      name: ${ADMIN_NAME:jose_elorza}
+      timezone: ${ADMIN_TIMEZONE:UTC}
 
 springdoc:
   swagger-ui:
