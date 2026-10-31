@@ -1,6 +1,6 @@
 package com.joselorza.app.infrastructure.security;
 
-import com.joselorza.app.application.port.out.UserRepository;
+import com.joselorza.app.infrastructure.repository.UserRepository;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;

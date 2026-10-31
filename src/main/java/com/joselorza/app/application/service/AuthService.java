@@ -1,9 +1,10 @@
 package com.joselorza.app.application.service;
 
-import com.joselorza.app.application.exception.*;
-import com.joselorza.app.application.port.out.RefreshTokenRepository;
-import com.joselorza.app.application.port.out.UserRepository;
+import com.joselorza.app.domain.exception.*;
+import com.joselorza.app.infrastructure.repository.RefreshTokenRepository;
+import com.joselorza.app.infrastructure.repository.UserRepository;
 import com.joselorza.app.domain.model.*;
+import com.joselorza.app.domain.model.enumerated.Role;
 import com.joselorza.app.infrastructure.security.JwtProperties;
 import com.joselorza.app.infrastructure.security.JwtTokenProvider;
 import com.joselorza.app.infrastructure.security.TokenHasher;
@@ -38,7 +39,7 @@ public class AuthService {
 
     public UserResponse register(RegisterRequest request) {
         if (userRepository.existsByEmail(request.email())) {
-            throw new EmailAlreadyExistsException(request.email());
+            throw new ResourceAlreadyExistsException();
         }
 
         User user = User.builder()
@@ -57,10 +58,10 @@ public class AuthService {
 
     public AuthResponse login(LoginRequest request) {
         User user = userRepository.findByEmail(request.email())
-                .orElseThrow(InvalidCredentialsException::new);
+                .orElseThrow(ResourceInvalidCredentialsException::new);
 
         if (!user.isActive() || !passwordEncoder.matches(request.password(), user.getPasswordHash())) {
-            throw new InvalidCredentialsException();
+            throw new ResourceInvalidCredentialsException();
         }
 
         return buildAuthResponse(user);
@@ -69,10 +70,10 @@ public class AuthService {
     public AuthResponse refresh(RefreshRequest request) {
         String tokenHash = TokenHasher.hash(request.refreshToken());
         RefreshToken storedToken = refreshTokenRepository.findByTokenHash(tokenHash)
-                .orElseThrow(InvalidRefreshTokenException::new);
+                .orElseThrow(ResourceInvalidTokenException::new);
 
         if (storedToken.isRevoked() || storedToken.getExpiresAt().isBefore(Instant.now())) {
-            throw new InvalidRefreshTokenException();
+            throw new ResourceInvalidTokenException();
         }
 
         // Rotación: se revoca el token actual antes de emitir uno nuevo

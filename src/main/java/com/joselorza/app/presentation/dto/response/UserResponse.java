@@ -1,6 +1,6 @@
 package com.joselorza.app.presentation.dto.response;
 
-import com.joselorza.app.domain.model.Role;
+import com.joselorza.app.domain.model.enumerated.Role;
 
 import java.time.Instant;
 import java.util.UUID;

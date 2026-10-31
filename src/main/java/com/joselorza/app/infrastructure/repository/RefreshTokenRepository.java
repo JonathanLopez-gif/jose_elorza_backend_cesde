@@ -1,12 +1,12 @@
-package com.joselorza.app.application.port.out;
+package com.joselorza.app.infrastructure.repository;
 
 import com.joselorza.app.domain.model.RefreshToken;
-import com.joselorza.app.domain.model.User;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.stereotype.Repository;
 
 import java.util.Optional;
 import java.util.UUID;
-
+@Repository
 public interface RefreshTokenRepository extends JpaRepository<RefreshToken, UUID> {
     Optional<RefreshToken> findByTokenHash(String tokenHash);
 }

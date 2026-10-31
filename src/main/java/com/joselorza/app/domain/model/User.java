@@ -1,5 +1,6 @@
 package com.joselorza.app.domain.model;
 
+import com.joselorza.app.domain.model.enumerated.Role;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;

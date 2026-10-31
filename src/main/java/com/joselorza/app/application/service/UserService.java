@@ -1,7 +1,7 @@
 package com.joselorza.app.application.service;
 
-import com.joselorza.app.application.exception.UserNotFoundException;
-import com.joselorza.app.application.port.out.UserRepository;
+import com.joselorza.app.domain.exception.ResourceNotFoundException;
+import com.joselorza.app.infrastructure.repository.UserRepository;
 import com.joselorza.app.domain.model.User;
 import com.joselorza.app.presentation.dto.request.UpdateUserRequest;
 import com.joselorza.app.presentation.dto.response.UserResponse;
@@ -50,6 +50,6 @@ public class UserService {
 
     private User findUserOrThrow(UUID userId) {
         return userRepository.findById(userId)
-                .orElseThrow(() -> new UserNotFoundException(userId));
+                .orElseThrow(() -> new ResourceNotFoundException());
     }
 }

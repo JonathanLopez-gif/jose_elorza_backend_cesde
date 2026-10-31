@@ -1,7 +1,7 @@
 package com.joselorza.app.infrastructure.seed;
 
-import com.joselorza.app.application.port.out.UserRepository;
-import com.joselorza.app.domain.model.Role;
+import com.joselorza.app.infrastructure.repository.UserRepository;
+import com.joselorza.app.domain.model.enumerated.Role;
 import com.joselorza.app.domain.model.User;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
