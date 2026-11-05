@@ -1,0 +1,84 @@
+# Despliegue en el VPS (Hostinger): Nginx (HTTPS con Let's Encrypt) + app + PostgreSQL.
+# Uso (desde la carpeta deploy/):
+#   docker compose -f docker-compose.prod.yml --env-file ../.env up -d --build
+# Ver deploy/README.md para la emisión inicial del certificado SSL.
+services:
+  postgres:
+    image: postgres:16
+    container_name: postgres
+    environment:
+      POSTGRES_DB: ${DB_NAME}
+      POSTGRES_USER: ${DB_USERNAME}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME} -d ${DB_NAME}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    networks:
+      - joselorza_network
+    # Sin "ports": la BD no se expone a Internet, solo a la red interna
+
+  app:
+    build:
+      context: ..
+      dockerfile: Dockerfile
+    image: joselorza_app:latest
+    container_name: app
+    env_file:
+      - ../.env
+    environment:
+      DB_URL: ${DB_URL_DOCKER}
+      SHOW_SQL: "false"
+      MAIL_SMTP_AUTH: "true"
+      MAIL_SMTP_STARTTLS: "true"
+      JWT_REFRESH_COOKIE_SECURE: "true"   # Cookie del refresh token solo por HTTPS
+      PAYMENTS_SANDBOX_ENABLED: "false"   # El simulador de pasarelas nunca en producción
+      API_DOCS_ENABLED: "false"           # Swagger/OpenAPI no se publica en producción
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - joselorza_network
+    # Sin "ports": solo Nginx publica el tráfico (80/443)
+
+  nginx:
+    image: nginx:1.27-alpine
+    container_name: nginx
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      API_DOMAIN: ${API_DOMAIN}
+    volumes:
+      - ./nginx/templates:/etc/nginx/templates:ro
+      - certbot_www:/var/www/certbot:ro
+      - certbot_certs:/etc/letsencrypt:ro
+    depends_on:
+      - app
+    restart: unless-stopped
+    networks:
+      - joselorza_network
+
+  certbot:
+    image: certbot/certbot:latest
+    container_name: certbot
+    volumes:
+      - certbot_www:/var/www/certbot
+      - certbot_certs:/etc/letsencrypt
+    # Renueva los certificados cada 12h (solo si están por vencer)
+    entrypoint: /bin/sh -c "trap exit TERM; while :; do certbot renew --webroot -w /var/www/certbot --quiet; sleep 12h & wait $${!}; done"
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+  certbot_www:
+  certbot_certs:
+
+networks:
+  joselorza_network:
+    driver: bridge

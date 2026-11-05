@@ -1,0 +1,144 @@
+server:
+  port: ${SERVER_PORT:8080}
+  # Detrás de Nginx (HTTPS en el VPS): respeta X-Forwarded-* para construir URLs correctas
+  forward-headers-strategy: framework
+
+spring:
+  application:
+    name: joselorza_app
+
+  datasource:
+    url: ${DB_URL:${DB_URL_LOCAL}}    # Fallback inteligente Docker/Local
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
+    driver-class-name: org.postgresql.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: ${DDL_AUTO:update}
+    show-sql: ${SHOW_SQL:true}
+    open-in-view: false
+    properties:
+      hibernate:
+        format_sql: true
+
+  mail:
+    host: ${MAIL_HOST}
+    port: ${MAIL_PORT}
+    username: ${MAIL_USERNAME:}
+    password: ${MAIL_PASSWORD:}
+    properties:
+      mail:
+        smtp:
+          # Local (MailDev): false/false. Gmail (producción): true/true
+          auth: ${MAIL_SMTP_AUTH:false}
+          starttls:
+            enable: ${MAIL_SMTP_STARTTLS:false}
+          connectiontimeout: 10000
+          timeout: 10000
+          writetimeout: 10000
+
+  task:
+    scheduling:
+      pool:
+        size: 2
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      # Detalles (BD, disco) solo si se habilitan; en producción /actuator/health solo dice UP/DOWN
+      show-details: ${HEALTH_SHOW_DETAILS:never}
+  health:
+    mail:
+      enabled: false   # Un SMTP caído no debe marcar la app como DOWN
+
+# Configuracion personalizada (se mapea con @ConfigurationProperties)
+app:
+  # URL del frontend: se usa para enlaces en correos (recuperación de contraseña, etc.)
+  frontend-url: ${FRONTEND_URL:http://localhost:5173}
+  # Orígenes del frontend autorizados por CORS (separados por comas)
+  cors-allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:5173}
+
+  jwt:
+    secret: ${JWT_SECRET}
+    access-expiration-minutes: ${JWT_ACCESS_EXPIRATION_MINUTES:15}
+    refresh-expiration-days: ${JWT_REFRESH_EXPIRATION_DAYS:7}
+    password-reset-expiration-minutes: ${PASSWORD_RESET_EXPIRATION_MINUTES:30}
+    # Cookie httpOnly del refresh token (Secure=true obligatorio en producción con HTTPS)
+    refresh-cookie-secure: ${JWT_REFRESH_COOKIE_SECURE:false}
+    refresh-cookie-same-site: ${JWT_REFRESH_COOKIE_SAME_SITE:Lax}
+
+  admin:
+    seed:
+      email: ${ADMIN_EMAIL:admin@joselorza.com}
+      password: ${ADMIN_PASSWORD:admin123}
+      name: ${ADMIN_NAME:jose_elorza}
+      timezone: ${ADMIN_TIMEZONE:UTC}
+
+  mail:
+    from: ${MAIL_FROM:no-reply@joselorza.com}
+    from-name: ${MAIL_FROM_NAME:José Fernando Elorza}
+
+  scheduling:
+    # Zona horaria en la que el administrador define sus reglas de disponibilidad
+    provider-timezone: ${PROVIDER_TIMEZONE:America/Bogota}
+    payment-deadline-hours: ${PAYMENT_DEADLINE_HOURS:48}
+    penalty-threshold-days: ${PENALTY_THRESHOLD_DAYS:7}
+    penalty-rate: ${PENALTY_RATE:0.10}
+    reminder-hours-before: ${REMINDER_HOURS_BEFORE:24}
+    no-show-grace-hours: ${NO_SHOW_GRACE_HOURS:24}
+    slot-step-minutes: ${SLOT_STEP_MINUTES:60}
+    min-notice-hours: ${MIN_NOTICE_HOURS:12}
+    reminder-cron: ${REMINDER_CRON:0 */15 * * * *}
+    no-show-cron: ${NO_SHOW_CRON:0 5/15 * * * *}
+    payment-expiration-cron: ${PAYMENT_EXPIRATION_CRON:0 10/15 * * * *}
+
+  payments:
+    # Simulador de pasarelas SOLO para desarrollo (nunca en producción)
+    sandbox:
+      enabled: ${PAYMENTS_SANDBOX_ENABLED:false}
+      checkout-url: ${PAYMENTS_SANDBOX_CHECKOUT_URL:http://localhost:5173/pago/checkout-simulado}
+    wompi:
+      enabled: ${WOMPI_ENABLED:false}
+      public-key: ${WOMPI_PUBLIC_KEY:}
+      integrity-secret: ${WOMPI_INTEGRITY_SECRET:}
+      events-secret: ${WOMPI_EVENTS_SECRET:}
+      checkout-url: ${WOMPI_CHECKOUT_URL:https://checkout.wompi.co/p/}
+      redirect-url: ${WOMPI_REDIRECT_URL:http://localhost:5173/pago/resultado}
+    global66:
+      enabled: ${GLOBAL66_ENABLED:false}
+      api-url: ${GLOBAL66_API_URL:}
+      api-key: ${GLOBAL66_API_KEY:}
+      webhook-secret: ${GLOBAL66_WEBHOOK_SECRET:}
+      order-path: ${GLOBAL66_ORDER_PATH:/payment-orders}
+      signature-header: ${GLOBAL66_SIGNATURE_HEADER:X-Global66-Signature}
+      redirect-url: ${GLOBAL66_REDIRECT_URL:http://localhost:5173/pago/resultado}
+      notification-url: ${GLOBAL66_NOTIFICATION_URL:http://localhost:8080/api/payments/webhooks/global66}
+
+  receipt:
+    issuer-name: ${RECEIPT_ISSUER_NAME:José Fernando Elorza}
+    issuer-id: ${RECEIPT_ISSUER_ID:}
+    issuer-email: ${RECEIPT_ISSUER_EMAIL:contacto@joselorza.com}
+
+  google-calendar:
+    enabled: ${GOOGLE_CALENDAR_ENABLED:false}
+    client-id: ${GOOGLE_CLIENT_ID:}
+    client-secret: ${GOOGLE_CLIENT_SECRET:}
+    redirect-uri: ${GOOGLE_REDIRECT_URI:http://localhost:8080/api/google-calendar/oauth2/callback}
+    calendar-id: ${GOOGLE_CALENDAR_ID:primary}
+    # Clave (Base64, 32 bytes) para cifrar con AES-GCM el refresh token de Google en BD
+    encryption-key: ${GOOGLE_TOKEN_ENCRYPTION_KEY:}
+    # Página del panel a la que se redirige tras completar el flujo OAuth2
+    post-authorization-redirect: ${GOOGLE_POST_AUTH_REDIRECT:http://localhost:5173/admin/google-calendar}
+
+springdoc:
+  swagger-ui:
+    enabled: ${API_DOCS_ENABLED:true}
+    path: /swagger-ui.html
+  api-docs:
+    enabled: ${API_DOCS_ENABLED:true}
+    path: /v3/api-docs

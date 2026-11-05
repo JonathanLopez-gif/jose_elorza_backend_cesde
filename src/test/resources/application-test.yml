@@ -1,0 +1,30 @@
+# Perfil de pruebas: la BD real la provee Testcontainers (@ServiceConnection)
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5432/test
+    username: test
+    password: test
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    show-sql: false
+  mail:
+    host: localhost
+    port: 3025
+
+app:
+  frontend-url: http://localhost:3000
+  jwt:
+    secret: test-secret-key-for-jwt-signing-at-least-256-bits-long-0123456789
+  admin:
+    seed:
+      email: admin@test.com
+      password: admin12345
+      name: admin
+      timezone: UTC
+  scheduling:
+    provider-timezone: America/Bogota
+    # "-" deshabilita los jobs programados durante las pruebas
+    reminder-cron: "-"
+    no-show-cron: "-"
+    payment-expiration-cron: "-"
